@@ -1,7 +1,8 @@
-require('__stdlib__/stdlib/core')
+require('__stdlib__/stdlib/config').control = true
 
 local Player = require('__stdlib__/stdlib/event/player')
 local Force = require('__stdlib__/stdlib/event/force')
+
 Player.register_events(true)
 Force.register_events(true)
 
