@@ -112,7 +112,6 @@ local function autofill(event)
 
         --Get inventories
         local mi = player.get_main_inventory()
-        local qb = player.get_quickbar()
         local vi = player.vehicle and player.vehicle.get_inventory(defines.inventory.car_trunk)
 
         local slot_counts = {}
@@ -217,13 +216,9 @@ local function autofill(event)
             -- How many to insert
             -- Min of item_count or stack_size
             -- cheat_mode == stack.size
-            insert_count = insert_count +
-                min(max(1, min(item_count, floor(item_count / ceil(group_count / slot_count)))), min(pdata.use_limits and slot.limit or stack_size, stack_size))
+            insert_count = insert_count + min(max(1, min(item_count, floor(item_count / ceil(group_count / slot_count)))), min(pdata.use_limits and slot.limit or stack_size, stack_size))
 
-
-
-
-                        game.print(insert_count)
+            --game.print(insert_count)
             --(( START inesertion ))--
             if ghost then
                 local requests = entity.item_requests or {}
