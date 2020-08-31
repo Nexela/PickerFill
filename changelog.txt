@@ -2,5 +2,3 @@
 Version: 1.0.0
 Date: ??????
   Features:
-    - Automatically Fill Entities when building.
-    - Automatically mark finished miners for deconstruction.
