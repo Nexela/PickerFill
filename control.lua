@@ -1,5 +1,7 @@
+require('__stdlib__/stdlib/event/event').set_protected_mode(true)
 require('__stdlib__/stdlib/event/player').register_events(false)
 
+require('scripts/interfaces')
+require('scripts/shortcuts')
 require('scripts/auto-fill')
-
-remote.add_interface(script.mod_name, require('__stdlib__/stdlib/scripts/interface'))
+require('scripts/gui')

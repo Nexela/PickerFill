@@ -1,4 +1,4 @@
-local Event = require('__stdlib__/stdlib/event/event').set_protected_mode(true)
+local Event = require('__stdlib__/stdlib/event/event')
 local Player = require('__stdlib__/stdlib/event/player')
 local Position = require('__stdlib__/stdlib/area/position')
 local Iter = require('__stdlib__/stdlib/utils/iter')
@@ -205,6 +205,7 @@ local function fill_entity(player, entity, is_ghost)
         end
 
         local group_count = is_ghost and 1 or get_group_counts(player, invs, set, pdata)
+        --- This shouldn't be nescecarry
         local slot_count = slot_counts[slot.category] - 1
         slot_count = slot_count < 1 and 1 or slot_count
 
@@ -236,24 +237,6 @@ local function on_built_entity(event)
 end
 Event.register(defines.events.on_built_entity, on_built_entity)
 
-local function on_player_created(event)
-    local player = game.get_player(event.player_index)
-    player.set_shortcut_toggled('toggle-picker-autofill-entity', true)
-    player.set_shortcut_toggled('toggle-picker-autofill-ghost', true)
-end
-Event.register(defines.events.on_player_created, on_player_created)
-
-local function on_lua_shortcut(event)
-    if event.prototype_name == 'toggle-picker-autofill-entity' then
-        local player = game.get_player(event.player_index)
-        player.set_shortcut_toggled('toggle-picker-autofill-entity', not player.is_shortcut_toggled('toggle-picker-autofill-entity'))
-    elseif event.prototype_name == 'toggle-picker-autofill-ghost' then
-        local player = game.get_player(event.player_index)
-        player.set_shortcut_toggled('toggle-picker-autofill-ghost', not player.is_shortcut_toggled('toggle-picker-autofill-ghost'))
-    end
-end
-Event.register(defines.events.on_lua_shortcut, on_lua_shortcut)
-
 local function player_on_init()
     return {
         entity_sets = setmetatable({}, {__index = global.entity_sets}),
@@ -284,35 +267,3 @@ local function on_init()
     Player.init()
 end
 Event.on_init(on_init)
-
-local function add_entity(event)
-    if event.parameter then
-        local ok, err =
-            pcall(
-            function()
-                local a = load('return ' .. event.parameter)()
-                assert(table_size(a) > 0)
-                for k, v in pairs(a) do
-                    assert(game.entity_prototypes[k], 'Entity does not exist')
-                    assert(v.slots, 'Slots table does not exist')
-                    for _, slot in pairs(v.slots) do
-                        assert(type(slot.type) == 'string', 'Slot type must be one of fuel, ammo, module')
-                        if slot.type == 'fuel' then
-                            assert(game.fuel_category_prototypes[slot.category], 'Invalid fuel category')
-                        elseif slot.type == 'ammo' then
-                            assert(game.ammo_category_prototypes[slot.category], 'Invalid ammo category')
-                        elseif slot.type == 'module' then
-                            assert(game.module_category_prototypes[slot.category], 'Invalid module category')
-                        end
-                    end
-                    global.entity_sets[k] = v
-                    log('Added ' .. k .. ' to the global entity set.')
-                end
-            end
-        )
-        if not ok then
-            game.print(err)
-        end
-    end
-end
-commands.add_command('autofill', '', add_entity)
