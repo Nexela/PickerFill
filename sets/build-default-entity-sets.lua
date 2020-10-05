@@ -51,20 +51,20 @@ local function build_default_entity_sets()
                 {type = 'ammo', category = 'cannon-shell', priority = 'qty'}
             }
         },
-        ['locomotive'] = {group = 'locomotives', slots = {fuel_max()}},
+        ['locomotive'] = {group = 'train-stop', slots = {fuel_max()}},
         ['artillery-wagon'] = {
-            group = 'artillery',
+            group = 'artillery-turret',
             slots = {{type = 'ammo', category = 'artillery-shell', priority = 'qty', limit = 5}}
         },
-        ['boiler'] = {group = 'burners', slots = {fuel_with_limit()}},
-        ['burner-inserter'] = {group = 'burners', slots = {fuel_with_limit()}},
-        ['burner-mining-drill'] = {group = 'burners', slots = {fuel_with_limit()}},
-        ['stone-furnace'] = {group = 'furnaces', slots = {fuel_with_limit()}},
-        ['steel-furnace'] = {group = 'furnaces', slots = {fuel_with_limit()}},
-        ['gun-turret'] = {group = 'turrets', slots = {ammo_bullet_qty()}},
-        ['artillery-turret'] = {group = 'artillery', slots = {{type = 'ammo', category = 'artillery-shell', priority = 'qty', limit = 5}}},
+        ['boiler'] = {group = 'burner-mining-drill', slots = {fuel_with_limit()}},
+        ['burner-inserter'] = {group = 'burner-mining-drill', slots = {fuel_with_limit()}},
+        ['burner-mining-drill'] = {group = 'burner-mining-drill', slots = {fuel_with_limit()}},
+        ['stone-furnace'] = {group = 'stone-furnace', slots = {fuel_with_limit()}},
+        ['steel-furnace'] = {group = 'stone-furnace', slots = {fuel_with_limit()}},
+        ['gun-turret'] = {group = 'gun-turret', slots = {ammo_bullet_qty()}},
+        ['artillery-turret'] = {group = 'artillery-turret', slots = {{type = 'ammo', category = 'artillery-shell', priority = 'qty', limit = 5}}},
         ['beacon'] = {
-            group = 'beacons',
+            group = 'beacon',
             slots = {
                 {type = 'module', category = 'speed', priority = 'max', limit = 1},
                 {type = 'module', category = 'speed', priority = 'max', limit = 1}

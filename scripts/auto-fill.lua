@@ -155,6 +155,11 @@ local function insert_items(player, vehicle, entity, insert_count, mi, vi, item,
     end
 end
 
+-- Return the lesser of limit or stack_size
+local function get_limit(pdata, limit, stack_size)
+    return min((pdata.use_limits and (tonumber(limit) or 0) > 0 and limit) or stack_size, stack_size)
+end
+
 local function fill_entity(player, entity, is_ghost)
     local name = is_ghost and entity.ghost_name or entity.name
     local pdata = global.players[player.index]
@@ -182,12 +187,13 @@ local function fill_entity(player, entity, is_ghost)
         slot_counts[slot.category] = (slot_counts[slot.category] or 0) + 1
     end
 
-    --Loop through each slot in the set.
-    for _, slot in ipairs(set.slots) do
+    local for_each = function(slot)
+        -- Todo If already has requests, or full inventory then skip
+        -- Todo Work directly on fuel/ammo/module inventory
+        -- Todo per player settings for use groups and use limits
         local item_list = pdata.item_sets[slot.type] and Table.deep_copy(pdata.item_sets[slot.type][slot.category])
         if not type(item_list) == 'table' then
-            flying_text(player, {'autofill.invalid-category'}, text_pos())
-            return
+            return flying_text(player, {'autofill.invalid-category'}, text_pos())
         end
         local item, item_count = get_item_and_counts(player, invs, slot, item_list, is_ghost)
 
@@ -198,8 +204,6 @@ local function fill_entity(player, entity, is_ghost)
                     return flying_text(player, {'autofill.out-of-item', slot.type}, text_pos())
                 elseif key then
                     return flying_text(player, {'autofill.invalid-itemname', key}, text_pos())
-                else
-                    return
                 end
             end
         end
@@ -210,23 +214,30 @@ local function fill_entity(player, entity, is_ghost)
         slot_count = slot_count < 1 and 1 or slot_count
 
         local stack_size = game.item_prototypes[item].stack_size
-        local insert_count = min(max(1, min(item_count, floor(item_count / ceil(group_count / slot_count)))), min(pdata.use_limits and slot.limit or stack_size, stack_size))
+        local insert_count = min(max(1, min(item_count, floor(item_count / ceil(group_count / slot_count)))), get_limit(pdata, slot.limit, stack_size))
 
         if is_ghost then
             local requests = entity.item_requests or {}
-            requests[item] = (requests[item] or 0) + insert_count
-            entity.item_requests = requests
-            return
+            if not requests[item] then
+                requests[item] = insert_count
+                entity.item_requests = requests
+                return flying_text(player, {'autofill.requesting', requests[item], game.item_prototypes[item].localised_name}, text_pos(), defines.color.lightblue)
+            end
         else
-            insert_items(player, vehicle, entity, insert_count, mi, vi, item, stack_size, text_pos)
+            return insert_items(player, vehicle, entity, insert_count, mi, vi, item, stack_size, text_pos)
         end
+    end
+
+    --Loop through each slot in the set.
+    for _, slot in ipairs(set.slots) do
+        for_each(slot)
     end
 end
 
-local function on_built_entity(event)
-    local entity = event.created_entity
-    local player = game.get_player(event.player_index)
-
+local function check_fill_entity(player, entity)
+    if not entity then
+        return
+    end
     if entity.name == 'entity-ghost' then
         if player.is_shortcut_toggled('toggle-picker-autofill-ghost') then
             return fill_entity(player, entity, true)
@@ -235,7 +246,20 @@ local function on_built_entity(event)
         return fill_entity(player, entity, false)
     end
 end
+
+local function on_built_entity(event)
+    local player = game.get_player(event.player_index)
+    local entity = event.created_entity
+    return check_fill_entity(player, entity)
+end
 Event.register(defines.events.on_built_entity, on_built_entity)
+
+local function picker_hotkey_fill(event)
+    local player = game.get_player(event.player_index)
+    local entity = player.selected
+    return check_fill_entity(player, entity)
+end
+Event.register('picker-hotkey-fill', picker_hotkey_fill)
 
 local function player_on_init()
     return {
