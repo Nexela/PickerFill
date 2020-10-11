@@ -81,7 +81,7 @@ local function build_row(table, name, data, is_ignored, is_global)
         local category, index = get_categories(data.slots[i])
         slots.add {type = 'drop-down', items = map.types, selected_index = cat_set.index} --type
         slots.add {type = 'drop-down', items = category, selected_index = index}.style.width = 150 --category
-        slots.add {type = 'drop-down', items = {'max', 'min', 'qty'}, selected_index = priority[data.slots[i].priority]} --priority
+        slots.add {type = 'drop-down', items = {'max', 'min', 'qty'}, selected_index = priority[data.slots[i].priority]}.style.width = 80 --priority
 
         local slider_table = slots.add {type = 'table', column_count = 2}
         local suffix = (is_global and 'global-' or 'player-') .. name .. '-' .. i
@@ -178,6 +178,6 @@ local function picker_toggle_autofill_gui(event)
     build_item_tab(player, pdata, tabbed_pane, 'Global Item List', global.item_sets, 50, player.admin, true)
     build_item_tab(player, pdata, tabbed_pane, 'Player Item List', pdata.item_sets, 50, false, false)
 
-    frame_pane.add{type = 'button', caption = 'ok'}
+    -- frame_pane.add{type = 'button', caption = 'ok'}
 end
 Event.register('picker-toggle-autofill-gui', picker_toggle_autofill_gui)
