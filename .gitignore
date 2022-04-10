@@ -1,8 +1,5 @@
 # Custom
-.build/
-.test/
-.history/
-.trash/
+.vscode/
 
 # Compiled Lua sources
 luac.out
