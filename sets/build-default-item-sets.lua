@@ -46,7 +46,7 @@ local function build_default_item_sets()
     end
 
     -- increase priority of vanilla bullets:
-    -- TODO interface to set level
+    ---@todo interface to set level
     set_priority(set.ammo, "bullet", "piercing-rounds-magazine", 10)
     set_priority(set.ammo, "bullet", "uranium-rounds-magazine", 20)
     set_priority(set.ammo, "rocket", "explosive-rocket", 10)
