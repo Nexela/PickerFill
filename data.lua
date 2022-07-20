@@ -1,2 +1,2 @@
-require('prototypes/shortcuts')
-require('prototypes/keybinds')
+require("prototypes/shortcuts")
+require("prototypes/keybinds")

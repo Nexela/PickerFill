@@ -1,14 +1,15 @@
-local Event = require('__stdlib__/stdlib/event/event')
-local Player = require('__stdlib__/stdlib/event/player')
-local Position = require('__stdlib__/stdlib/area/position')
-local Iter = require('__stdlib__/stdlib/utils/iter')
-local Table = require('__stdlib__/stdlib/utils/table')
+local Event = require("__stdlib__/stdlib/event/event")
+local Player = require("__stdlib__/stdlib/event/player")
+local Position = require("__stdlib__/stdlib/area/position")
+local Color = require("__stdlib__/stdlib/utils/color")
+local Iter = require("__stdlib__/stdlib/utils/iter")
+local Table = require("__stdlib__/stdlib/utils/table")
 
-local build_default_entity_sets = require('sets/build-default-entity-sets')
-local build_default_item_sets = require('sets/build-default-item-sets')
+local build_default_entity_sets = require("sets/build-default-entity-sets")
+local build_default_item_sets = require("sets/build-default-item-sets")
 
 local min, max, floor, ceil = math.min, math.max, math.floor, math.ceil
-local priorities = {['qty'] = 'qty', ['max'] = 'max', ['min'] = 'min'}
+local priorities = { ["qty"] = "qty", ["max"] = "max", ["min"] = "min" }
 
 local function _sort_max(t, a, b)
     return t[b] < t[a]
@@ -29,15 +30,15 @@ local function get_highest_value(tbl)
 end
 
 local function flying_text(player, line, pos, color)
-    color = color or defines.color.red
-    line = line or ''
+    color = color or Color.color.red
+    line = line or ""
     pos = pos or player.position
-    return player.create_local_flying_text {position = pos, text = line, color = color}
+    return player.create_local_flying_text { position = pos, text = line, color = color }
 end
 
-local function get_inv_count(item_name, invs)
+local function get_inv_count(item_name, inventories)
     local total = 0
-    for _, inv in pairs(invs) do
+    for _, inv in pairs(inventories) do
         total = total + inv.get_item_count(item_name)
     end
     return total
@@ -53,8 +54,9 @@ local function is_ignored(item_name, ignore_list)
     return false
 end
 
-local function get_item_and_counts(player, invs, slot, item_list, is_ghost)
-    local priority = is_ghost and 'qty' or priorities[slot.priority] or 'qty'
+---@return string?, integer
+local function get_item_and_counts(player, inventories, slot, item_list, is_ghost)
+    local priority = is_ghost and "qty" or priorities[slot.priority] or "qty"
 
     -- Remove items from the list that are not valid or ignored
     for item_name in pairs(item_list) do
@@ -65,11 +67,11 @@ local function get_item_and_counts(player, invs, slot, item_list, is_ghost)
 
     if player.cheat_mode then
         return get_highest_value(item_list), 32000000
-    elseif priority == 'qty' then
+    elseif priority == "qty" then
         local item
-        local item_count = 0
+        local item_count = 0 --[[@as uint]]
         for item_name, _ in pairs(item_list) do
-            local total = get_inv_count(item_name, invs)
+            local total = get_inv_count(item_name, inventories)
             if (total > 0 and total > item_count) then
                 item = item_name
                 item_count = total
@@ -79,16 +81,16 @@ local function get_item_and_counts(player, invs, slot, item_list, is_ghost)
             return get_highest_value(item_list)
         end
         return item, item_count
-    elseif priority == 'max' then
+    elseif priority == "max" then
         for item_name, _ in Iter.spairs(item_list, _sort_max) do
-            local total = get_inv_count(item_name, invs)
+            local total = get_inv_count(item_name, inventories)
             if total > 0 then
                 return item_name, total
             end
         end
-    elseif priority == 'min' then
+    elseif priority == "min" then
         for item_name, _ in Iter.spairs(item_list, _sort_min) do
-            local total = get_inv_count(item_name, invs)
+            local total = get_inv_count(item_name, inventories)
             if total > 0 then
                 return item_name, total
             end
@@ -97,7 +99,7 @@ local function get_item_and_counts(player, invs, slot, item_list, is_ghost)
     return nil, 0
 end
 
-local function get_group_counts(player, invs, set, pdata)
+local function get_group_counts(player, inventories, set, pdata)
     local group_count = 1
     if (set.group and pdata.use_groups) then
         if player.cursor_stack.valid_for_read then
@@ -106,13 +108,13 @@ local function get_group_counts(player, invs, set, pdata)
         local counted = {}
         for entity_name, set_table in pairs(pdata.entity_sets) do
             if set_table.group == set.group then
-                group_count = group_count + get_inv_count(entity_name, invs)
+                group_count = group_count + get_inv_count(entity_name, inventories)
                 counted[entity_name] = true
             end
         end
         for entity_name, set_table in pairs(global.entity_sets) do
             if set_table.group == set.group and not counted[entity_name] then
-                group_count = group_count + get_inv_count(entity_name, invs)
+                group_count = group_count + get_inv_count(entity_name, inventories)
             end
         end
     end
@@ -120,29 +122,29 @@ local function get_group_counts(player, invs, set, pdata)
 end
 
 local function insert_items(player, vehicle, entity, insert_count, mi, vi, item, stack_size, text_pos)
-    local inserted = entity.insert {name = item, count = insert_count}
+    local inserted = entity.insert { name = item, count = insert_count }
 
     if inserted > 0 then
         local removed_from_vehicle
         if vi then
-            removed_from_vehicle = vi.remove {name = item, count = inserted}
+            removed_from_vehicle = vi.remove { name = item, count = inserted }
             if inserted > removed_from_vehicle then
-                mi.remove {name = item, count = inserted - removed_from_vehicle}
+                mi.remove { name = item, count = inserted - removed_from_vehicle }
             end
         else
-            mi.remove {name = item, count = inserted}
+            mi.remove { name = item, count = inserted }
         end
 
         local color
         if inserted < stack_size then
-            color = defines.color.yellow
+            color = Color.color.yellow
         elseif insert_count >= stack_size then
-            color = defines.color.green
+            color = Color.color.green
         end
 
         if removed_from_vehicle then
             local msg = {
-                'autofill.insertion-from-vehicle',
+                "autofill.insertion-from-vehicle",
                 inserted,
                 game.item_prototypes[item].localised_name,
                 removed_from_vehicle,
@@ -150,7 +152,7 @@ local function insert_items(player, vehicle, entity, insert_count, mi, vi, item,
             }
             flying_text(player, msg, text_pos(), color)
         else
-            flying_text(player, {'autofill.insertion', inserted, game.item_prototypes[item].localised_name}, text_pos(), color)
+            flying_text(player, { "autofill.insertion", inserted, game.item_prototypes[item].localised_name }, text_pos(), color)
         end
     end
 end
@@ -160,6 +162,9 @@ local function get_limit(pdata, limit, stack_size)
     return min((pdata.use_limits and (tonumber(limit) or 0) > 0 and limit) or stack_size, stack_size)
 end
 
+---@param player LuaPlayer
+---@param entity LuaEntity
+---@param is_ghost boolean
 local function fill_entity(player, entity, is_ghost)
     local name = is_ghost and entity.ghost_name or entity.name
     local pdata = global.players[player.index]
@@ -169,7 +174,7 @@ local function fill_entity(player, entity, is_ghost)
         return
     end
 
-    if type(set.enabled) == 'boolean' and not set.enabled then
+    if type(set.enabled) == "boolean" and not set.enabled then
         return
     end
 
@@ -180,7 +185,7 @@ local function fill_entity(player, entity, is_ghost)
     local mi = player.get_main_inventory()
     local vehicle = player.vehicle
     local vi = vehicle and vehicle.get_inventory(defines.inventory.car_trunk)
-    local invs = {mi, vi or nil}
+    local inventories = { mi, vi or nil }
 
     local slot_counts = {}
     for _, slot in ipairs(set.slots) do
@@ -192,23 +197,23 @@ local function fill_entity(player, entity, is_ghost)
         -- Todo Work directly on fuel/ammo/module inventory
         -- Todo per player settings for use groups and use limits
         local item_list = pdata.item_sets[slot.type] and Table.deep_copy(pdata.item_sets[slot.type][slot.category])
-        if not type(item_list) == 'table' then
-            return flying_text(player, {'autofill.invalid-category'}, text_pos())
+        if not type(item_list) == "table" then
+            return flying_text(player, { "autofill.invalid-category" }, text_pos())
         end
-        local item, item_count = get_item_and_counts(player, invs, slot, item_list, is_ghost)
+        local item, item_count = get_item_and_counts(player, inventories, slot, item_list, is_ghost)
 
         if not is_ghost then
             if not item or item_count < 1 then
                 local key = next(item_list)
                 if key and game.item_prototypes[key] then
-                    return flying_text(player, {'autofill.out-of-item', slot.type}, text_pos())
+                    return flying_text(player, { "autofill.out-of-item", slot.type }, text_pos())
                 elseif key then
-                    return flying_text(player, {'autofill.invalid-itemname', key}, text_pos())
+                    return flying_text(player, { "autofill.invalid-itemname", key }, text_pos())
                 end
             end
         end
 
-        local group_count = is_ghost and 1 or get_group_counts(player, invs, set, pdata)
+        local group_count = is_ghost and 1 or get_group_counts(player, inventories, set, pdata)
         --- This shouldn't be nescecarry
         local slot_count = slot_counts[slot.category] - 1
         slot_count = slot_count < 1 and 1 or slot_count
@@ -217,11 +222,13 @@ local function fill_entity(player, entity, is_ghost)
         local insert_count = min(max(1, min(item_count, floor(item_count / ceil(group_count / slot_count)))), get_limit(pdata, slot.limit, stack_size))
 
         if is_ghost then
+            if not item then return end
             local requests = entity.item_requests or {}
             if not requests[item] then
                 requests[item] = insert_count
                 entity.item_requests = requests
-                return flying_text(player, {'autofill.requesting', requests[item], game.item_prototypes[item].localised_name}, text_pos(), defines.color.lightblue)
+                return flying_text(player, { "autofill.requesting", requests[item], game.item_prototypes[item].localised_name }, text_pos(),
+                    Color.color.lightblue)
             end
         else
             return insert_items(player, vehicle, entity, insert_count, mi, vi, item, stack_size, text_pos)
@@ -238,11 +245,11 @@ local function check_fill_entity(player, entity)
     if not entity then
         return
     end
-    if entity.name == 'entity-ghost' then
-        if player.is_shortcut_toggled('toggle-picker-autofill-ghost') then
+    if entity.name == "entity-ghost" then
+        if player.is_shortcut_toggled("toggle-picker-autofill-ghost") then
             return fill_entity(player, entity, true)
         end
-    elseif player.is_shortcut_toggled('toggle-picker-autofill-entity') then
+    elseif player.is_shortcut_toggled("toggle-picker-autofill-entity") then
         return fill_entity(player, entity, false)
     end
 end
@@ -259,15 +266,15 @@ local function picker_hotkey_fill(event)
     local entity = player.selected
     return check_fill_entity(player, entity)
 end
-Event.register('picker-hotkey-fill', picker_hotkey_fill)
+Event.register("picker-hotkey-fill", picker_hotkey_fill)
 
 local function player_on_init()
     return {
-        entity_sets = setmetatable({}, {__index = global.entity_sets}),
+        entity_sets = setmetatable({}, { __index = global.entity_sets }),
         item_sets = {
-            fuel = setmetatable({}, {__index = global.item_sets.fuel}),
-            ammo = setmetatable({}, {__index = global.item_sets.ammo}),
-            modules = setmetatable({}, {__index = global.item_sets.modules})
+            fuel = setmetatable({}, { __index = global.item_sets.fuel }),
+            ammo = setmetatable({}, { __index = global.item_sets.ammo }),
+            modules = setmetatable({}, { __index = global.item_sets.modules })
         },
         use_groups = true,
         use_limits = true
@@ -277,10 +284,10 @@ Player.additional_data(player_on_init)
 
 local function on_load()
     for _, player in pairs(global.players) do
-        setmetatable(player.entity_sets, {__index = global.entity_sets})
-        setmetatable(player.item_sets.fuel, {__index = global.item_sets.fuel})
-        setmetatable(player.item_sets.ammo, {__index = global.item_sets.ammo})
-        setmetatable(player.item_sets.modules, {__index = global.item_sets.modules})
+        setmetatable(player.entity_sets, { __index = global.entity_sets })
+        setmetatable(player.item_sets.fuel, { __index = global.item_sets.fuel })
+        setmetatable(player.item_sets.ammo, { __index = global.item_sets.ammo })
+        setmetatable(player.item_sets.modules, { __index = global.item_sets.modules })
     end
 end
 Event.on_load(on_load)
